@@ -20,7 +20,7 @@ export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Halo! Selamat datang di Muezza Petshop 🐾. Ada yang bisa saya bantu? Kamu bisa tanya soal lokasi, jam buka, atau layanan kami.",
+      text: "Halo Kak! 👋 Selamat datang di Muezza Petshop. Aku siap bantu info soal produk, grooming, hotel, atau studio foto. Mau tanya apa ni?",
       sender: "bot",
     },
   ]);
@@ -32,75 +32,49 @@ export default function Chatbot() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Logika "Otak" Chatbot
-  const getBotResponse = (input: string): string => {
-    const lowerInput = input.toLowerCase();
-
-    if (lowerInput.includes("halo") || lowerInput.includes("hi") || lowerInput.includes("pagi") || lowerInput.includes("siang")) {
-      return "Halo juga! 👋 Ada yang bisa Muezza bantu untuk anabul kesayanganmu?";
-    }
-
-    if (lowerInput.includes("jam") || lowerInput.includes("buka") || lowerInput.includes("tutup") || lowerInput.includes("waktu")) {
-      return "🕒 Muezza Petshop buka setiap hari dari jam 08.00 - 21.00 WIB. Kami siap melayani kebutuhan anabulmu!";
-    }
-
-    if (lowerInput.includes("lokasi") || lowerInput.includes("alamat") || lowerInput.includes("cabang") || lowerInput.includes("dimana")) {
-      return "📍 Kami memiliki beberapa cabang strategis. Kamu bisa cek detail lokasi lengkapnya di menu 'Cabang' pada website ini.";
-    }
-
-    if (lowerInput.includes("produk") || lowerInput.includes("makanan") || lowerInput.includes("jual")) {
-      return "🛍️ Kami menjual berbagai makanan kucing (Royal Canin, Whiskas, Me-O, Bolt), vitamin, pasir, dan aksesoris. Cek menu 'Produk' untuk katalog lengkapnya.";
-    }
-
-    if (lowerInput.includes("grooming") || lowerInput.includes("mandi")) {
-      return "zp🚿 Layanan Grooming kami mencakup mandi sehat, potong kuku, dan bersihkan telinga. Bisa booking via WhatsApp ya!";
-    }
-
-    if (lowerInput.includes("hotel") || lowerInput.includes("penitipan") || lowerInput.includes("inap")) {
-      return "zp🏨 Mau titip anabul? Muezza Pet Hotel menyediakan tempat yang nyaman, ber-AC, dan diawasi staff profesional.";
-    }
-
-    if (lowerInput.includes("studio") || lowerInput.includes("foto")) {
-      return "📸 Abadikan momen lucu anabulmu di Pet Studio kami! Tersedia berbagai kostum dan properti menarik.";
-    }
-
-    if (lowerInput.includes("harga") || lowerInput.includes("biaya")) {
-      return "💰 Untuk detail harga layanan dan produk, silakan cek halaman terkait di website ini atau hubungi kami langsung via WhatsApp untuk promo terbaru.";
-    }
-
-    if (lowerInput.includes("kontak") || lowerInput.includes("wa") || lowerInput.includes("whatsapp") || lowerInput.includes("telp")) {
-      return "📞 Kamu bisa menghubungi kami melalui WhatsApp di nomor yang tertera di halaman 'Cabang' untuk respon cepat.";
-    }
-
-    return "Maaf, saya kurang mengerti pertanyaanmu 🤔. Coba tanya tentang 'jam buka', 'lokasi', 'grooming', atau 'produk'.";
-  };
-
-  const handleSendMessage = (e?: React.FormEvent) => {
+  const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!inputValue.trim()) return;
 
-    // 1. Tambahkan pesan user
-    const newUserMsg: Message = {
+    // 1. Tambahkan pesan user ke UI
+    const userMsg: Message = {
       id: Date.now(),
       text: inputValue,
       sender: "user",
     };
 
-    setMessages((prev) => [...prev, newUserMsg]);
+    setMessages((prev) => [...prev, userMsg]);
     setInputValue("");
     setIsTyping(true);
 
-    // 2. Simulasi delay bot berpikir
-    setTimeout(() => {
-      const botResponseText = getBotResponse(newUserMsg.text);
-      const newBotMsg: Message = {
+    try {
+      // 2. Kirim ke API Gemini
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMsg.text }),
+      });
+
+      const data = await response.json();
+
+      // 3. Tambahkan balasan bot ke UI
+      const botMsg: Message = {
         id: Date.now() + 1,
-        text: botResponseText,
+        text: data.reply || "Maaf, ada gangguan koneksi. Coba lagi ya.",
         sender: "bot",
       };
-      setMessages((prev) => [...prev, newBotMsg]);
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      const errorMsg: Message = {
+        id: Date.now() + 1,
+        text: "Waduh, aku lagi pusing nih 😵. Coba tanya lagi nanti ya.",
+        sender: "bot",
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -128,8 +102,8 @@ export default function Chatbot() {
                   <Bot className="w-5 h-5 text-primary-blue" />
                 </div>
                 <div>
-                  <CardTitle className="text-base text-[#1D3A2F]">Muezza Assistant</CardTitle>
-                  <p className="text-xs text-[#1D3A2F]/80">Online</p>
+                  <CardTitle className="text-base text-[#1D3A2F]">Muezza AI</CardTitle>
+                  <p className="text-xs text-[#1D3A2F]/80">Online • Powered by Gemini</p>
                 </div>
               </div>
               <Button
@@ -160,6 +134,7 @@ export default function Chatbot() {
                         : "bg-white text-slate-700 border border-slate-200 rounded-tl-none"
                     )}
                   >
+                    {/* Render text (bisa ditambahkan markdown parser jika ingin format bold/list) */}
                     {msg.text}
                   </div>
                 </div>
@@ -167,8 +142,9 @@ export default function Chatbot() {
 
               {isTyping && (
                 <div className="flex justify-start">
-                  <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm">
-                    <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                  <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin text-primary-blue" />
+                    <span className="text-xs text-slate-400">Muezza sedang mengetik...</span>
                   </div>
                 </div>
               )}
@@ -184,8 +160,9 @@ export default function Chatbot() {
                 <Input
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Ketik pertanyaan..."
+                  placeholder="Tanya sesuatu..."
                   className="rounded-full bg-slate-50 border-slate-200 focus-visible:ring-primary-blue"
+                  disabled={isTyping}
                 />
                 <Button
                   type="submit"
