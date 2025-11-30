@@ -1,5 +1,6 @@
 import Navbar from "@/components/ui/Navbar";
 import Footer from "@/components/Footer";
+import Chatbot from "@/components/Chatbot";
 
 export default function RootLayout({
   children,
@@ -11,6 +12,7 @@ export default function RootLayout({
       <Navbar />
       {children}
       <Footer />
+      <Chatbot />
     </div>
   );
 }
